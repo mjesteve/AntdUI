@@ -1075,6 +1075,7 @@ namespace AntdUI
                         break;
                     }
                 }
+                if (value == null && tag != null) value = new SelectItem(tag.ToString() ?? string.Empty, tag);
 
             }
 

@@ -47,6 +47,16 @@ namespace AntdUI
 
         bool inEditMode = false;
         /// <summary>
+        /// Enables extended editing behavior in derived controls.
+        /// </summary>
+        protected virtual bool UseGridEditingBehavior => false;
+
+        /// <summary>
+        /// Indica si hay un editor de celda activo.
+        /// </summary>
+        protected bool IsEditorActive => inEditMode || _editControls.Count > 0;
+
+        /// <summary>
         /// 关闭编辑模式
         /// </summary>
         public void EditModeClose()
@@ -63,7 +73,9 @@ namespace AntdUI
                         {
                             select.SelectedValueChanged -= InputEdit_SelectedValueChanged;
                             select.ClosedItem -= InputEdit_SelectedValueChanged;
-                            obj.call?.Invoke(obj.value == select.SelectedValue, select.SelectedValue);
+                            select.KeyPress -= InputEdit_KeyPress;
+                            object? currentValue = UseGridEditingBehavior && !select.List ? select.Text : select.SelectedValue;
+                            obj.call?.Invoke(Equals(obj.value, currentValue), currentValue);
                         }
                         else
                         {
@@ -78,6 +90,35 @@ namespace AntdUI
                 }
                 inEditMode = false;
             }
+        }
+
+        /// <summary>
+        /// Cancela el editor de celda activo sin aplicar su valor.
+        /// </summary>
+        /// <returns><c>true</c> si había un editor activo.</returns>
+        protected bool CancelEditMode()
+        {
+            if (!IsEditorActive) return false;
+            var ids = _editControls.Keys.ToArray();
+            foreach (var id in ids)
+            {
+                if (_editControls.TryRemove(id, out var obj))
+                {
+                    id.LostFocus -= InputEdit_LostFocus;
+                    if (id is Select select)
+                    {
+                        select.SelectedValueChanged -= InputEdit_SelectedValueChanged;
+                        select.ClosedItem -= InputEdit_SelectedValueChanged;
+                    }
+                    id.KeyPress -= InputEdit_KeyPress;
+                    obj.call = null;
+                    Focus();
+                    id.Dispose();
+                    Controls.Remove(id);
+                }
+            }
+            inEditMode = false;
+            return true;
         }
 
         bool CanEditMode(CELL cell)
@@ -139,7 +180,8 @@ namespace AntdUI
                             {
                                 if (cell is TCellSelect cellSelect)
                                 {
-                                    cellSelect!.value = cellSelect.COLUMN[r_value];
+                                    cellSelect!.value = cellSelect.COLUMN[r_value] ??
+                                        (UseGridEditingBehavior ? CreateSelectItem(r_value) : null);
                                     SetValue(cell, r_value);
                                     if (multiline) LoadLayout();
                                 }
@@ -550,6 +592,11 @@ namespace AntdUI
             edit.Items.AddRange(column.Items.ToArray());
             return edit;
         }
+        static SelectItem? CreateSelectItem(object? value)
+        {
+            if (value == null) return null;
+            return new SelectItem(value.ToString() ?? string.Empty, value);
+        }
         void ShowInput(Input input, bool region, int column, Action<bool, object?> call)
         {
             if (input is Select select)
@@ -566,10 +613,17 @@ namespace AntdUI
 
         void ShowSelect(Select select, bool region, int column, Action<bool, object?> call)
         {
-            if (AddEditInput(select, select.SelectedValue, call, region, column))
+            object? initialValue = UseGridEditingBehavior && !select.List ? select.Text : select.SelectedValue;
+            if (AddEditInput(select, initialValue, call, region, column))
             {
                 select.SelectedValueChanged += InputEdit_SelectedValueChanged;
                 select.ClosedItem += InputEdit_SelectedValueChanged;
+                if (UseGridEditingBehavior)
+                {
+                    select.EnterDropDown = false;
+                    select.ArrowKeyDropDown = false;
+                    select.KeyPress += InputEdit_KeyPress;
+                }
                 select.Focus();
             }
         }
@@ -588,7 +642,13 @@ namespace AntdUI
                 }
             }
         }
-        void InputEdit_SelectedValueChanged(object? sender, ObjectNEventArgs e) => EditModeClose();
+        void InputEdit_SelectedValueChanged(object? sender, ObjectNEventArgs e)
+        {
+            var currentEdit = _currentEdit;
+            bool keyboardConfirm = UseGridEditingBehavior && sender is Select select && select.KeyboardConfirm;
+            EditModeClose();
+            if (keyboardConfirm && currentEdit != null) OnCellEditEnter(sender!, currentEdit);
+        }
         void InputEdit_LostFocus(object? sender, EventArgs e)
         {
             if (EditLostFocus) EditModeClose();
