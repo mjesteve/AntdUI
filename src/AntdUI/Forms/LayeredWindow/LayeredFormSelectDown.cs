@@ -285,7 +285,19 @@ namespace AntdUI
                         if (hoveindex > -1)
                         {
                             var it = Items[hoveindex];
-                            if (it.SID && OnClick(it)) return true;
+                            if (it.SID)
+                            {
+                                Select? keyboardSelect = PARENT as Select;
+                                if (keyboardSelect != null) keyboardSelect.KeyboardConfirm = true;
+                                try
+                                {
+                                    if (OnClick(it)) return true;
+                                }
+                                finally
+                                {
+                                    if (keyboardSelect != null) keyboardSelect.KeyboardConfirm = false;
+                                }
+                            }
                         }
                     }
                     else if (keys == Keys.Up)

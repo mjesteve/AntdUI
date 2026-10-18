@@ -338,6 +338,8 @@ namespace AntdUI
             subForm = null;
         }
 
+        internal bool KeyboardConfirm;
+
         internal bool DropDownClose(object? value)
         {
             if (ClosedItem == null) return false;
