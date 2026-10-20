@@ -64,7 +64,7 @@ namespace AntdUI.LanguagePacks
             ["Filter.BoolTrue"] = "Sí",
             ["Filter.BoolFalse"] = "No",
             ["Preview.CopySuccess"] = "Copiado correctamente",
-            ["Chat.TipDateFormat"] = "yyyy-MM-dd dddd HH:mm",
+            ["Chat.TipDateFormat"] = "dd-MM-yyyy dddd HH:mm",
             ["Captcha.Success"] = "Verificación correcta",
             ["Captcha.Failed"] = "Verificación fallida",
             ["Captcha.DragHint"] = "Arrastra la pieza hacia la derecha para completar el puzle",
