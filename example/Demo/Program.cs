@@ -23,8 +23,7 @@ namespace Demo
 #endif
             var command = string.Join(" ", arge);
             AntdUI.Localization.DefaultLanguage = "zh-CN";
-            var lang = AntdUI.Localization.CurrentLanguage;
-            if (lang.StartsWith("en")) AntdUI.Localization.Provider = new Localizer();
+            DemoLanguage.Apply(AntdUI.Localization.CurrentLanguage);
             AntdUI.Config.Theme().Dark("#000", "#fff").Light("#fff", "#000").FormBorderColor();
             AntdUI.Config.TextRenderingHighQuality = true;
             AntdUI.Config.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
