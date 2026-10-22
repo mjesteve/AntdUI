@@ -20,10 +20,12 @@ namespace Demo
             InitializeComponent();
             windowBar.Text += " " + windowBar.ProductVersion;
             TopMost = top;
-            var globals = new AntdUI.SelectItem[] {
-                new AntdUI.SelectItem("中文","zh-CN"),
-                new AntdUI.SelectItem("English","en-US")
-            };
+            var globals = new AntdUI.SelectItem[AntdUI.BuiltInLanguages.All.Count];
+            for (int index = 0; index < globals.Length; index++)
+            {
+                var language = AntdUI.BuiltInLanguages.All[index];
+                globals[index] = new AntdUI.SelectItem(language.NativeDisplayName, language.Identifier);
+            }
             btn_global.Items.AddRange(globals);
             btn_more.Items.AddRange(new AntdUI.SelectItem[] {
                 new AntdUI.SelectItem("Github","github").SetIcon(Properties.Resources.icon_github),
@@ -33,9 +35,7 @@ namespace Demo
                 new AntdUI.SelectItem("演示 Demo","m"),
                 new AntdUI.SelectItem("演示 Tab","tab"),
             });
-            var lang = AntdUI.Localization.CurrentLanguage;
-            if (lang.StartsWith("en")) btn_global.SelectedValue = globals[1].Tag;
-            else btn_global.SelectedValue = globals[0].Tag;
+            btn_global.SelectedValue = AntdUI.Localization.CurrentLanguage;
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -307,9 +307,7 @@ namespace Demo
         {
             if (e.Value is string lang)
             {
-                if (lang.StartsWith("en")) AntdUI.Localization.Provider = new Localizer();
-                else AntdUI.Localization.Provider = null;
-                AntdUI.Localization.SetLanguage(lang);
+                DemoLanguage.Apply(lang);
                 Refresh();
             }
         }
