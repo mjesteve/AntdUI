@@ -88,6 +88,7 @@ namespace AntdUI
             get => _value;
             set
             {
+                ClearValidationError();
                 if (_value == value) return;
                 _value = value;
                 SetText(value);
@@ -435,7 +436,12 @@ namespace AntdUI
             else if (keyData == Keys.Down) ExpandDrop = true;
             else if (keyData == Keys.Enter)
             {
-                if (TryParseValue(Text, out var _d))
+                if (IsTextEmpty)
+                {
+                    Value = null;
+                    ExpandDrop = false;
+                }
+                else if (TryParseValue(Text, out var _d))
                 {
                     PValue(_d);
                     ExpandDrop = false;
