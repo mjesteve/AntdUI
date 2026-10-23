@@ -29,6 +29,24 @@ namespace AntdUI
 
         string dateFormat = "yyyy-MM-dd";
 
+        DatePickerFormatMode formatMode = DatePickerFormatMode.Custom;
+
+        /// <summary>
+        /// Specifies whether the control uses a custom pattern or the active localization culture.
+        /// </summary>
+        [Description("Date format mode"), Category(nameof(CategoryAttribute.Behavior)), DefaultValue(DatePickerFormatMode.Custom)]
+        public DatePickerFormatMode FormatMode
+        {
+            get => formatMode;
+            set
+            {
+                if (formatMode == value) return;
+                formatMode = value;
+                SetText(_value);
+                OnPropertyChanged(nameof(FormatMode));
+            }
+        }
+
         /// <summary>
         /// 格式化
         /// </summary>
@@ -44,6 +62,19 @@ namespace AntdUI
                 OnPropertyChanged(nameof(Format));
             }
         }
+
+        internal CultureInfo EffectiveCulture => new CultureInfo(Localization.CurrentLanguage);
+
+        internal string EffectiveFormat => FormatMode switch
+        {
+            DatePickerFormatMode.CultureDate => EffectiveCulture.DateTimeFormat.ShortDatePattern,
+            DatePickerFormatMode.CultureDateTime => EffectiveCulture.DateTimeFormat.ShortDatePattern + " " + EffectiveCulture.DateTimeFormat.ShortTimePattern,
+            _ => Format,
+        };
+
+        internal bool HasTime => FormatMode == DatePickerFormatMode.CultureDateTime || HasTimeComponents(EffectiveFormat);
+
+        internal static bool HasTimeComponents(string format) => format.Contains("H") || format.Contains("h") || format.Contains("m") || format.Contains("s");
 
         DateTime? _value;
         /// <summary>
@@ -63,7 +94,11 @@ namespace AntdUI
             }
         }
 
-        void SetText(DateTime? value) => Text = value.HasValue ? value.Value.ToString(Format) : string.Empty;
+        void SetText(DateTime? value) => Text = value.HasValue ? value.Value.ToString(EffectiveFormat, EffectiveCulture) : string.Empty;
+
+        bool TryParseValue(string text, out DateTime value) =>
+            DateTime.TryParseExact(text, EffectiveFormat, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value) ||
+            DateTime.TryParse(text, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value);
 
         /// <summary>
         /// 最小日期
@@ -174,6 +209,12 @@ namespace AntdUI
             base.OnHandleCreated(e);
             SetText(_value);
             if (expandDrop) OpenSubForm();
+        }
+
+        public override void HandleEvent(EventType id, object? tag)
+        {
+            base.HandleEvent(id, tag);
+            if (id == EventType.LANG && FormatMode != DatePickerFormatMode.Custom) SetText(_value);
         }
 
         #region 自带图标
@@ -301,7 +342,7 @@ namespace AntdUI
                     Value = null;
                     return;
                 }
-                if (DateTime.TryParseExact(Text, Format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var _d)) PValue(_d);
+                if (TryParseValue(Text, out var _d)) PValue(_d);
             }
         }
 
@@ -333,7 +374,7 @@ namespace AntdUI
         {
             if (keyData == Keys.Escape) ExpandDrop = false;
             else if (keyData == Keys.Down) ExpandDrop = true;
-            else if (keyData == Keys.Enter && DateTime.TryParse(Text, out var _d))
+            else if (keyData == Keys.Enter && TryParseValue(Text, out var _d))
             {
                 PValue(_d);
                 ExpandDrop = false;
@@ -347,7 +388,7 @@ namespace AntdUI
             if (isempty) return;
             if (EnabledValueTextChange)
             {
-                if (DateTime.TryParseExact(text, Format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var _d)) PValue(_d);
+                if (TryParseValue(text, out var _d)) PValue(_d);
             }
             else
             {
@@ -368,6 +409,7 @@ namespace AntdUI
         void PValue(DateTime value)
         {
             Value = value;
+            SetText(value);
             if (subForm == null) return;
             subForm.SelDate = subForm.Date = value;
             subForm.Print();

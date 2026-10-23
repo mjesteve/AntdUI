@@ -145,12 +145,12 @@ namespace AntdUI
             {
                 if (EndFocused)
                 {
-                    control.PlaceholderEnd = value.Value.ToString(control.Format);
+                    control.PlaceholderEnd = value.Value.ToString(control.EffectiveFormat, control.EffectiveCulture);
                     tmpEnd = value;
                 }
                 else
                 {
-                    control.PlaceholderStart = value.Value.ToString(control.Format);
+                    control.PlaceholderStart = value.Value.ToString(control.EffectiveFormat, control.EffectiveCulture);
                     tmpStart = value;
                 }
             }

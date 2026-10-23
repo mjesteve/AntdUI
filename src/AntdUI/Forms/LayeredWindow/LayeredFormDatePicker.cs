@@ -33,9 +33,9 @@ namespace AntdUI
             SetFont(_control.Font);
             minDate = _control.MinDate;
             maxDate = _control.MaxDate;
-            ShowH = control.Format.Contains("H");
-            ShowM = control.Format.Contains("m");
-            ShowS = control.Format.Contains("s");
+            ShowH = control.EffectiveFormat.Contains("H") || control.EffectiveFormat.Contains("h");
+            ShowM = control.EffectiveFormat.Contains("m");
+            ShowS = control.EffectiveFormat.Contains("s");
             ShowTime = ShowH || ShowM || ShowS;
             ShowButtonToDay = _control.ShowButtonToDay;
             ValueTimeHorizontal = _control.ValueTimeHorizontal;
