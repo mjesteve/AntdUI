@@ -39,9 +39,9 @@ namespace AntdUI
             EndFocused = endFocused;
             AnimationBarValue = bar;
 
-            ShowH = control.Format.Contains("H");
-            ShowM = control.Format.Contains("m");
-            ShowS = control.Format.Contains("s");
+            ShowH = control.EffectiveFormat.Contains("H") || control.EffectiveFormat.Contains("h");
+            ShowM = control.EffectiveFormat.Contains("m");
+            ShowS = control.EffectiveFormat.Contains("s");
             ValueTimeHorizontal = _control.ValueTimeHorizontal;
 
             showType = _control.Picker;
@@ -125,12 +125,12 @@ namespace AntdUI
                 if (EndFocused)
                 {
                     tmpEnd.HoverDate(value.Value);
-                    control.PlaceholderEnd = value.Value.ToString(control.Format);
+                    control.PlaceholderEnd = value.Value.ToString(control.EffectiveFormat, control.EffectiveCulture);
                 }
                 else
                 {
                     tmpStart.HoverDate(value.Value);
-                    control.PlaceholderStart = value.Value.ToString(control.Format);
+                    control.PlaceholderStart = value.Value.ToString(control.EffectiveFormat, control.EffectiveCulture);
                 }
             }
             else
@@ -144,12 +144,12 @@ namespace AntdUI
             if (EndFocused)
             {
                 tmpEnd.HoverTime(h, m, s);
-                control.PlaceholderEnd = tmpEnd.Tmp?.ToString(control.Format);
+                control.PlaceholderEnd = tmpEnd.Tmp?.ToString(control.EffectiveFormat, control.EffectiveCulture);
             }
             else
             {
                 tmpStart.HoverTime(h, m, s);
-                control.PlaceholderStart = tmpStart.Tmp?.ToString(control.Format);
+                control.PlaceholderStart = tmpStart.Tmp?.ToString(control.EffectiveFormat, control.EffectiveCulture);
             }
         }
         void SetDate(DateTime? value)
@@ -159,12 +159,12 @@ namespace AntdUI
                 if (EndFocused)
                 {
                     tmpEnd.SetDate(value.Value);
-                    control.PlaceholderEnd = value.Value.ToString(control.Format);
+                    control.PlaceholderEnd = value.Value.ToString(control.EffectiveFormat, control.EffectiveCulture);
                 }
                 else
                 {
                     tmpStart.SetDate(value.Value);
-                    control.PlaceholderStart = value.Value.ToString(control.Format);
+                    control.PlaceholderStart = value.Value.ToString(control.EffectiveFormat, control.EffectiveCulture);
                 }
             }
             else
@@ -178,12 +178,12 @@ namespace AntdUI
             if (EndFocused)
             {
                 tmpEnd.SetTime(h, m, s);
-                control.PlaceholderEnd = tmpEnd.Tmp?.ToString(control.Format);
+                control.PlaceholderEnd = tmpEnd.Tmp?.ToString(control.EffectiveFormat, control.EffectiveCulture);
             }
             else
             {
                 tmpStart.SetTime(h, m, s);
-                control.PlaceholderStart = tmpStart.Tmp?.ToString(control.Format);
+                control.PlaceholderStart = tmpStart.Tmp?.ToString(control.EffectiveFormat, control.EffectiveCulture);
             }
         }
         void SetDateNow()
@@ -191,12 +191,12 @@ namespace AntdUI
             if (EndFocused)
             {
                 tmpEnd.SetNow();
-                control.PlaceholderEnd = tmpEnd.Tmp?.ToString(control.Format);
+                control.PlaceholderEnd = tmpEnd.Tmp?.ToString(control.EffectiveFormat, control.EffectiveCulture);
             }
             else
             {
                 tmpStart.SetNow();
-                control.PlaceholderStart = tmpStart.Tmp?.ToString(control.Format);
+                control.PlaceholderStart = tmpStart.Tmp?.ToString(control.EffectiveFormat, control.EffectiveCulture);
             }
         }
         bool SetDate()

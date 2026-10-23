@@ -109,6 +109,23 @@ namespace AntdUI
 
         string dateFormat = "yyyy-MM-dd";
         bool ShowTime = false;
+        DatePickerFormatMode formatMode = DatePickerFormatMode.Custom;
+
+        /// <summary>
+        /// Specifies whether the control uses a custom pattern or the active localization culture.
+        /// </summary>
+        [Description("Date format mode"), Category(nameof(CategoryAttribute.Behavior)), DefaultValue(DatePickerFormatMode.Custom)]
+        public DatePickerFormatMode FormatMode
+        {
+            get => formatMode;
+            set
+            {
+                if (formatMode == value) return;
+                formatMode = value;
+                RefreshFormat();
+                OnPropertyChanged(nameof(FormatMode));
+            }
+        }
 
         /// <summary>
         /// 格式化
@@ -121,10 +138,25 @@ namespace AntdUI
             {
                 if (dateFormat == value) return;
                 dateFormat = value;
-                ShowTime = dateFormat.Contains("H");
-                if (_value == null) Text = "";
-                else Text = _value[0].ToString(dateFormat) + "\t" + _value[1].ToString(dateFormat);
+                RefreshFormat();
             }
+        }
+
+        internal CultureInfo EffectiveCulture => new CultureInfo(Localization.CurrentLanguage);
+
+        internal string EffectiveFormat => FormatMode switch
+        {
+            DatePickerFormatMode.CultureDate => EffectiveCulture.DateTimeFormat.ShortDatePattern,
+            DatePickerFormatMode.CultureDateTime => EffectiveCulture.DateTimeFormat.ShortDatePattern + " " + EffectiveCulture.DateTimeFormat.ShortTimePattern,
+            _ => Format,
+        };
+
+        internal bool HasTime => FormatMode == DatePickerFormatMode.CultureDateTime || DatePicker.HasTimeComponents(EffectiveFormat);
+
+        void RefreshFormat()
+        {
+            ShowTime = HasTime;
+            SetText(_value);
         }
 
         DateTime[]? _value;
@@ -145,8 +177,12 @@ namespace AntdUI
         void SetText(DateTime[]? value)
         {
             if (value == null) Text = "";
-            else Text = value[0].ToString(Format) + "\t" + value[1].ToString(Format);
+            else Text = value[0].ToString(EffectiveFormat, EffectiveCulture) + "\t" + value[1].ToString(EffectiveFormat, EffectiveCulture);
         }
+
+        bool TryParseValue(string text, out DateTime value) =>
+            DateTime.TryParseExact(text, EffectiveFormat, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value) ||
+            DateTime.TryParse(text, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value);
 
         /// <summary>
         /// 最小日期
@@ -295,6 +331,12 @@ namespace AntdUI
             if (expandDrop) OpenSubForm();
         }
 
+        public override void HandleEvent(EventType id, object? tag)
+        {
+            base.HandleEvent(id, tag);
+            if (id == EventType.LANG && FormatMode != DatePickerFormatMode.Custom) RefreshFormat();
+        }
+
         #region 自带图标
 
         bool showicon = true;
@@ -441,7 +483,7 @@ namespace AntdUI
                 if (index > 0)
                 {
                     string stext = text.Substring(0, index), etext = text.Substring(index + 1);
-                    if (DateTime.TryParse(stext, out var date_s) && DateTime.TryParse(etext, out var date_e)) Value = new DateTime[] { date_s, date_e };
+                    if (TryParseValue(stext, out var date_s) && TryParseValue(etext, out var date_e)) Value = new DateTime[] { date_s, date_e };
                     SetText(_value);
                 }
             }
@@ -486,18 +528,18 @@ namespace AntdUI
                         string stext;
                         if (index == -1) stext = text;
                         else stext = text.Substring(0, index);
-                        if (DateTime.TryParse(stext, out var date_s))
+                        if (TryParseValue(stext, out var date_s))
                         {
                             if (index == -1)
                             {
-                                Text = date_s.ToString(Format) + '\t';
+                                Text = date_s.ToString(EffectiveFormat, EffectiveCulture) + '\t';
                                 SelectionStart = Text.Length;
                             }
                             else
                             {
                                 var etext = text.Substring(index + 1);
-                                if (DateTime.TryParse(etext, out var date_e)) Text = date_s.ToString(Format) + '\t' + date_e.ToString(Format);
-                                else Text = date_s.ToString(Format) + '\t' + etext;
+                                if (TryParseValue(etext, out var date_e)) Text = date_s.ToString(EffectiveFormat, EffectiveCulture) + '\t' + date_e.ToString(EffectiveFormat, EffectiveCulture);
+                                else Text = date_s.ToString(EffectiveFormat, EffectiveCulture) + '\t' + etext;
                             }
                             if (subForm is LayeredFormDatePickerRange layered_range) layered_range.SetDateS(date_s);
                             else if (subForm is LayeredFormDatePickerRangeTime layered_time) layered_time.IClose();
@@ -512,19 +554,19 @@ namespace AntdUI
                         string etext;
                         if (index == -1) etext = text;
                         else etext = text.Substring(index + 1);
-                        if (DateTime.TryParse(etext, out var date_e))
+                        if (TryParseValue(etext, out var date_e))
                         {
-                            if (index == -1) Text = '\t' + date_e.ToString(Format);
+                            if (index == -1) Text = '\t' + date_e.ToString(EffectiveFormat, EffectiveCulture);
                             else
                             {
                                 string stext = text.Substring(0, index);
-                                if (DateTime.TryParse(stext, out var date_s))
+                                if (TryParseValue(stext, out var date_s))
                                 {
-                                    Text = date_s.ToString(Format) + '\t' + date_e.ToString(Format);
+                                    Text = date_s.ToString(EffectiveFormat, EffectiveCulture) + '\t' + date_e.ToString(EffectiveFormat, EffectiveCulture);
                                     if (subForm is LayeredFormDatePickerRange layered_range) layered_range.SetDateE(date_s, date_e);
                                     else if (subForm is LayeredFormDatePickerRangeTime layered_time) layered_time.IClose();
                                 }
-                                else Text = text.Substring(0, index) + '\t' + date_e.ToString(Format);
+                                else Text = text.Substring(0, index) + '\t' + date_e.ToString(EffectiveFormat, EffectiveCulture);
                             }
                         }
                     }
@@ -558,8 +600,7 @@ namespace AntdUI
                 if (index > 0 && index < text.Length - 1)
                 {
                     string sd = text.Substring(0, index), ed = text.Substring(index + 1);
-                    if (DateTime.TryParseExact(sd, Format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var sdate) &&
-                        DateTime.TryParseExact(ed, Format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var edate))
+                    if (TryParseValue(sd, out var sdate) && TryParseValue(ed, out var edate))
                     {
                         Value = new DateTime[] { sdate, edate };
                     }
