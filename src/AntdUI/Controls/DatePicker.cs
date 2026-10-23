@@ -77,6 +77,8 @@ namespace AntdUI
         internal static bool HasTimeComponents(string format) => format.Contains("H") || format.Contains("h") || format.Contains("m") || format.Contains("s");
 
         DateTime? _value;
+        bool hasValidationError;
+        TType statusBeforeValidationError;
         /// <summary>
         /// 控件当前日期
         /// </summary>
@@ -96,9 +98,37 @@ namespace AntdUI
 
         void SetText(DateTime? value) => Text = value.HasValue ? value.Value.ToString(EffectiveFormat, EffectiveCulture) : string.Empty;
 
-        bool TryParseValue(string text, out DateTime value) =>
-            DateTime.TryParseExact(text, EffectiveFormat, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value) ||
-            DateTime.TryParse(text, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value);
+        bool TryParseValue(string text, out DateTime value)
+        {
+            if (DateTime.TryParseExact(text, EffectiveFormat, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value)) return true;
+            if (FormatMode == DatePickerFormatMode.Custom) return false;
+            return DateTime.TryParse(text, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value);
+        }
+
+        void SetValidationError()
+        {
+            if (!hasValidationError)
+            {
+                statusBeforeValidationError = Status;
+                hasValidationError = true;
+            }
+            Status = TType.Error;
+            SelectAll();
+            if (IsHandleCreated && !IsDisposed)
+            {
+                BeginInvoke(new Action(() =>
+                {
+                    if (!IsDisposed && HasFocus) SelectAll();
+                }));
+            }
+        }
+
+        void ClearValidationError()
+        {
+            if (!hasValidationError) return;
+            hasValidationError = false;
+            Status = statusBeforeValidationError;
+        }
 
         /// <summary>
         /// 最小日期
@@ -332,6 +362,23 @@ namespace AntdUI
             base.OnLostFocus(e);
         }
 
+        protected override void OnValidating(CancelEventArgs e)
+        {
+            base.OnValidating(e);
+            if (e.Cancel || IsTextEmpty)
+            {
+                ClearValidationError();
+                return;
+            }
+            if (TryParseValue(Text, out var value))
+            {
+                PValue(value);
+                return;
+            }
+            SetValidationError();
+            e.Cancel = true;
+        }
+
         void ILostFocus()
         {
             ExpandDrop = false;
@@ -343,6 +390,7 @@ namespace AntdUI
                     return;
                 }
                 if (TryParseValue(Text, out var _d)) PValue(_d);
+                else SetValidationError();
             }
         }
 
@@ -357,7 +405,12 @@ namespace AntdUI
 
         #region 鼠标
 
-        protected override void OnClearValue() => Value = null;
+        protected override void OnClearValue()
+        {
+            ClearValidationError();
+            if (Value.HasValue) Value = null;
+            else Text = string.Empty;
+        }
 
         protected override void OnClickContent(MouseEventArgs e)
         {
@@ -372,12 +425,26 @@ namespace AntdUI
 
         protected override bool ProcessCmdKey(ref System.Windows.Forms.Message msg, Keys keyData)
         {
-            if (keyData == Keys.Escape) ExpandDrop = false;
-            else if (keyData == Keys.Down) ExpandDrop = true;
-            else if (keyData == Keys.Enter && TryParseValue(Text, out var _d))
+            if (keyData == Keys.Escape)
             {
-                PValue(_d);
+                SetText(_value);
+                ClearValidationError();
                 ExpandDrop = false;
+                return true;
+            }
+            else if (keyData == Keys.Down) ExpandDrop = true;
+            else if (keyData == Keys.Enter)
+            {
+                if (TryParseValue(Text, out var _d))
+                {
+                    PValue(_d);
+                    ExpandDrop = false;
+                }
+                else
+                {
+                    SetValidationError();
+                    return true;
+                }
             }
             return base.ProcessCmdKey(ref msg, keyData);
         }
@@ -385,6 +452,7 @@ namespace AntdUI
         int change = 0;
         protected override void OnSetText(string text, bool isempty)
         {
+            ClearValidationError();
             if (isempty) return;
             if (EnabledValueTextChange)
             {
@@ -397,7 +465,7 @@ namespace AntdUI
                     if (HasFocus) ExpandDrop = true;
                     return;
                 }
-                if (DateTime.TryParseExact(text, Format, CultureInfo.InvariantCulture, DateTimeStyles.None, out var _d))
+                if (TryParseValue(text, out var _d))
                 {
                     change++;
                     subForm.SelDate = subForm.Date = _d;
@@ -408,6 +476,7 @@ namespace AntdUI
 
         void PValue(DateTime value)
         {
+            ClearValidationError();
             Value = value;
             SetText(value);
             if (subForm == null) return;
