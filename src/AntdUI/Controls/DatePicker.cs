@@ -485,6 +485,7 @@ namespace AntdUI
             ClearValidationError();
             Value = value;
             SetText(value);
+            if (HasFocus) SelectionStart = Text.Length;
             if (subForm == null) return;
             subForm.SelDate = subForm.Date = value;
             subForm.Print();
