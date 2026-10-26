@@ -180,9 +180,12 @@ namespace AntdUI
             else Text = value[0].ToString(EffectiveFormat, EffectiveCulture) + "\t" + value[1].ToString(EffectiveFormat, EffectiveCulture);
         }
 
-        bool TryParseValue(string text, out DateTime value) =>
-            DateTime.TryParseExact(text, EffectiveFormat, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value) ||
-            DateTime.TryParse(text, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value);
+        bool TryParseValue(string text, out DateTime value)
+        {
+            if (DateTime.TryParseExact(text, EffectiveFormat, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value)) return true;
+            if (FormatMode == DatePickerFormatMode.Custom) return false;
+            return DateTime.TryParse(text, EffectiveCulture, DateTimeStyles.AllowWhiteSpaces, out value);
+        }
 
         /// <summary>
         /// 最小日期
